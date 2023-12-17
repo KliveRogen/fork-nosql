@@ -27,10 +27,10 @@ public class RateLimiter {
   public boolean pass() {
     long now = Instant.now().toEpochMilli();
     long windowStart = now - timeWindowSeconds * 1000;
+    redis.zremrangeByScore(label, 0, windowStart);
     long requestsCount = redis.zcount(label, windowStart, now);
     if (requestsCount < maxRequestCount) {
       redis.zadd(label, now, Long.toString(now));
-      redis.expire(label, timeWindowSeconds);
       return true;
     } else {
       return false;
@@ -41,7 +41,7 @@ public class RateLimiter {
     JedisPool pool = new JedisPool("localhost", 9041);
 
     try (Jedis redis = pool.getResource()) {
-      RateLimiter rateLimiter = new RateLimiter(redis, "pr_rate", 5, 50);
+      RateLimiter rateLimiter = new RateLimiter(redis, "pr_rate", 5, 5);
 
       BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
       long prev = Instant.now().toEpochMilli();
